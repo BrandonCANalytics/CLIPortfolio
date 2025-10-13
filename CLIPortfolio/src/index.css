@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+html, body, #root { height: 100%; }
+body { margin: 0; overflow-x: hidden; }
+* { box-sizing: border-box; }
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -15,6 +18,7 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
 
 a {
   font-weight: 500;

@@ -3,44 +3,44 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 // =============================
 // 🔧 Quick setup notes
 // 1) Drop this file into a Vite React + Tailwind project as src/App.jsx
-// 2) Put the XP wallpaper into /public/xp.jpg OR use the default URL below
+// 2) Using Tailwind v4? In src/index.css put:  @import "tailwindcss";
+//    And in postcss.config.js:  export default { plugins: { "@tailwindcss/postcss": {} } }
 // 3) Fill in the LINKS + RESUME constants
 // 4) npm run dev
 // =============================
 
 // ======= CONFIG: personalize these =======
-const RESUME_PDF_URL = "#"; // e.g. "/Brandon_Cantrell_Resume.pdf" or a public link
-const LINKEDIN_URL = "https://www.linkedin.com/in/"; // your exact handle
-const GITHUB_URL = "https://github.com/"; // your exact handle
-const PYGAME_URL = "https://www.pygame.org/"; // replace with your Pygame page or portfolio project
-const XP_WALLPAPER_URL =
-  "https://upload.wikimedia.org/wikipedia/commons/5/5f/Bliss_by_charles_o%27rear.jpg"; // Windows XP "Bliss"
+const RESUME_PDF_URL = "https://drive.google.com/file/d/1vRsuxjurObH3oeU80AiqVgrL37YvBjc9/view?usp=sharing"; // e.g. "/Brandon_Cantrell_Resume.pdf" or a public link
+const LINKEDIN_URL = "https://www.linkedin.com/in/canalytics/";
+const GITHUB_URL = "https://github.com/BrandonCANalytics";
+const PYGAME_URL = "https://canalytics.itch.io/corp-pygame"; // point to your Pygame profile or game page
+const EMAIL = "brandoncantrell2000@gmail.com"; // update me
+const CALENDLY_URL = "https://calendly.com/brandoncantrell2000/canalytics-intro-call"; // update me
 
-// ======= Sample resume text (edit freely) =======
-const RESUME_LINES = [
-  "Brandon Cantrell — Analytics Engineering / Web Dev",
-  "Dallas, TX  •  Senior Business Intelligence Analyst",
-  "LinkedIn: " + LINKEDIN_URL,
-  "GitHub: " + GITHUB_URL,
-  "",
-  "SUMMARY",
-  "Data-driven builder blending analytics engineering and full‑stack mindset.",
-  "Ships clean data models, performant dashboards, and small web tools that stick.",
-  "",
-  "CORE SKILLS",
-  "SQL • Looker/LookML • Data Modeling • ELT • Python • JS/TS • React • APIs • Git",
-  "",
-  "EXPERIENCE",
-  "— Senior BI Analyst · Title Insurance (Dallas, TX)",
-  "   • Built KPI layers, governed metrics, and embedded dashboards for clients.",
-  "   • Partnered with product/ops to turn questions into measurable outcomes.",
-  "",
-  "PROJECTS",
-  "— Math Launch Dallas (tutoring microsite): Webflow + analytics pipeline",
-  "— Crime & Orders dashboards: governed metrics, thin marts, and alerts",
-  "",
-  "EDUCATION & CERTS",
-  "Security+ • Ongoing: JS/TS + React + Node • Full Stack Open",
+// Windows XP "Bliss" (archived 600dpi)
+const XP_WALLPAPER_URL =
+  "https://ia801007.us.archive.org/13/items/theoriginalfilesofsomewindowswallpapers/bliss%20600dpi.jpg";
+
+// Showcase projects
+const PROJECTS = [
+  {
+    name: "Math Launch Dallas",
+    blurb: "Tutoring microsite with simple analytics pipeline and lead capture.",
+    link: "https://mathlaunchdallas.webflow.io/",
+    tags: ["Webflow", "Analytics", "Lead gen"],
+  },
+  {
+    name: "Crime & Orders Dashboards",
+    blurb: "Governed metrics + thin marts feeding embedded dashboards.",
+    link: "",
+    tags: ["Looker", "SQL", "Data Modeling"],
+  },
+  {
+    name: "1 Hard Thing a Day API",
+    blurb: "FastAPI + Postgres side project with simple JWT auth.",
+    link: "https://one-hard-thing.fly.dev/",
+    tags: ["FastAPI", "Postgres", "Auth"],
+  },
 ];
 
 // ======= Terminal UI helpers =======
@@ -48,8 +48,10 @@ const PROMPT = "brandon@cantrell:~$";
 const HELP_LINES = [
   "Available commands:",
   "  can -h            Show help",
-  "  can -resume       Print resume + PDF link",
+  "  can -resume       Open resume window (click to view fullscreen)",
   "  can -links        Show LinkedIn, GitHub, Pygame links",
+  "  can -projects     Show featured projects",
+  "  can -contact      Show email and scheduling",
   "  clear             Clear the terminal",
 ];
 
@@ -97,12 +99,13 @@ function useTypewriter() {
 }
 
 export default function App() {
-  const [lines, setLines] = useState([]); // {kind: 'out'|'in'|'link', text}
+  const [lines, setLines] = useState([]); // {kind: 'out'|'in'|'typed', text}
   const [input, setInput] = useState("");
   const inputRef = useRef(null);
   const { buffer, typeLines, clear: clearTypewriter, isTyping } = useTypewriter();
+  const [showResume, setShowResume] = useState(false);
 
-  // Focus the hidden input when clicking anywhere in the terminal
+  // Focus the input when clicking anywhere in the terminal
   const containerRef = useRef(null);
   useEffect(() => {
     const el = containerRef.current;
@@ -112,12 +115,20 @@ export default function App() {
     return () => el.removeEventListener("mousedown", handle);
   }, []);
 
-  // On mount: greet & hint
+  // On mount: boot animation + greet
   useEffect(() => {
-    setLines([
-      { kind: "out", text: "Welcome to Brandon’s Portfolio CLI." },
-      { kind: "out", text: "Pro tip: type 'can -h' to see all commands." },
-    ]);
+    setLines([]);
+    clearTypewriter();
+    const BOOT_LINES = [
+      "[BOOT] Initializing environment…",
+      "[OK] Loading portfolio modules…",
+      "[OK] Mounting UI…",
+      "[OK] Ready.",
+      "",
+      "Welcome to Brandon’s Portfolio CLI.",
+      "Pro tip: type 'can -h' to see all commands.",
+    ];
+    typeLines(BOOT_LINES);
   }, []);
 
   // Append typewriter buffer as it grows
@@ -140,15 +151,16 @@ export default function App() {
     // Show what the user typed
     setLines((prev) => [...prev, { kind: "in", text: `${PROMPT} ${cmd}` }]);
 
-    if (cmd === "" ) return;
+    if (cmd === "") return;
 
     if (cmd === "clear") {
       setLines([]);
       clearTypewriter();
+      setShowResume(false);
       return;
     }
 
-    if (cmd === "can -h" || cmd === "help" || cmd === "?" ) {
+    if (cmd === "can -h" || cmd === "help" || cmd === "?") {
       typeLines(HELP_LINES);
       return;
     }
@@ -163,14 +175,30 @@ export default function App() {
       return;
     }
 
+    if (cmd === "can -projects") {
+      const out = ["Projects:"];
+      PROJECTS.forEach((p, i) => {
+        out.push(`  ${i + 1}. ${p.name} — ${p.blurb}`);
+        out.push(`     Tags: ${p.tags.join(", ")}`);
+        out.push(`     Link: ${p.link}`);
+      });
+      typeLines(out);
+      return;
+    }
+
+    if (cmd === "can -contact") {
+      const out = [`Email     → ${EMAIL}`, `Schedule  → ${CALENDLY_URL}`];
+      typeLines(out);
+      return;
+    }
+
     if (cmd === "can -resume") {
-      const out = [...RESUME_LINES];
+      const out = ["Opening resume window…"];
       if (RESUME_PDF_URL && RESUME_PDF_URL !== "#") {
-        out.push("");
         out.push(`PDF version → ${RESUME_PDF_URL}`);
+        setShowResume(true);
       } else {
-        out.push("");
-        out.push("(Set RESUME_PDF_URL to enable the PDF link.)");
+        out.push("(Set RESUME_PDF_URL to enable the PDF preview and link.)");
       }
       typeLines(out);
       return;
@@ -197,12 +225,10 @@ export default function App() {
 
   return (
     <div
-      className="min-h-screen w-full bg-cover bg-center bg-fixed"
-      style={{
-        backgroundImage: `url(${XP_WALLPAPER_URL})`,
-      }}
-    >
-      <div className="min-h-screen w-full backdrop-blur-[2px] bg-black/35 flex items-center justify-center p-4">
+      className="min-h-dvh w-[100dvw] bg-cover bg-center bg-fixed overflow-x-hidden"
+      style={{ backgroundImage: `url(${XP_WALLPAPER_URL})` }}
+     >
+      <div className="min-h-dvh w-full overflow-x-hidden backdrop-blur-[2px] bg-black/35 flex items-center justify-center p-6">
         <div
           ref={containerRef}
           className="w-full max-w-4xl rounded-2xl shadow-2xl border border-white/15 bg-black/70 text-green-200 font-mono text-sm md:text-base"
@@ -219,7 +245,10 @@ export default function App() {
           </div>
 
           {/* Terminal scroll area */}
-          <div className="h-[65vh] overflow-y-auto p-4 space-y-1" onClick={() => inputRef.current?.focus()}>
+          <div
+            className="h-[75dvh] overflow-y-auto p-4 space-y-1"
+            onClick={() => inputRef.current?.focus()}
+          >
             {lines.map((ln, idx) => (
               <Line key={idx} kind={ln.kind} text={ln.text} />
             ))}
@@ -242,15 +271,84 @@ export default function App() {
                   }}
                 />
                 {hint && (
-                  <span className="absolute left-0 top-0 text-white/30 pointer-events-none select-none">
+                  <span className="absolute left-1 top-0 text-white/30 pointer-events-none select-none">
                     {hint}
                   </span>
                 )}
-                {/* Blinking cursor (visual aid). The real caret is in the input; this is decorative. */}
-                <span className="inline-block w-2 h-5 ml-1 align-middle bg-emerald-300 animate-pulse" />
               </div>
             </form>
           </div>
+        </div>
+      </div>
+
+      {/* Resume Modal */}
+      {showResume && (
+        <ResumeModal
+          pdfUrl={RESUME_PDF_URL}
+          onClose={() => setShowResume(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ResumeModal({ pdfUrl, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+      onClick={onClose}
+    >
+      <div
+        className="w-[95vw] md:w-[80vw] h-[80vh] max-w-5xl rounded-2xl overflow-hidden border border-white/15 bg-black/85 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Title bar */}
+        <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-white/5">
+          <div className="flex items-center gap-2 text-white/80">
+            <span className="w-3 h-3 rounded-full bg-red-500/90" />
+            <span className="w-3 h-3 rounded-full bg-yellow-500/90" />
+            <span className="w-3 h-3 rounded-full bg-emerald-500/90" />
+            <span className="ml-3">Resume.pdf</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-white/70 hover:text-white"
+            aria-label="Close resume"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* PDF preview area. Any click opens fullscreen PDF in new tab. */}
+        <div className="relative w-full h-[calc(80vh-44px)]">
+          {/* Visual preview (non-interactive so overlay click works everywhere) */}
+          <object
+            data={pdfUrl}
+            type="application/pdf"
+            className="w-full h-full pointer-events-none"
+            aria-label="Resume PDF preview"
+          >
+            <div className="w-full h-full flex items-center justify-center text-white/70 p-6 text-center">
+              PDF preview not supported here. Click to open fullscreen.
+            </div>
+          </object>
+
+          {/* Click-through overlay → opens new tab with fullscreen PDF */}
+          <a
+            href={pdfUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="absolute inset-0"
+            aria-label="Open resume fullscreen"
+          />
         </div>
       </div>
     </div>
