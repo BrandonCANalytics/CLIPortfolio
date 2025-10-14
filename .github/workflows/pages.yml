@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: CLIPortfolio/CLIPortfolio   # 👈 your real inner folder
+        working-directory: CLIPortfolio/  # 👈 your real inner folder
     steps:
       - uses: actions/checkout@v4
 
@@ -28,7 +28,7 @@ jobs:
           pwd
           ls -la
           echo "--- inner dir ---"
-          ls -la CLIPortfolio/CLIPortfolio
+          ls -la CLIPortfolio/
 
       - uses: actions/setup-node@v4
         with:
