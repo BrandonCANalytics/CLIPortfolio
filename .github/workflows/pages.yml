@@ -28,7 +28,7 @@ jobs:
           pwd
           ls -la
           echo "--- inner dir ---"
-          ls -la CLIPortfolio
+          ls -la CLIPortfolio/CLIPortfolio
 
       - uses: actions/setup-node@v4
         with:
