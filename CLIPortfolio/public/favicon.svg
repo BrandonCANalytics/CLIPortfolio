@@ -1,0 +1,16 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <!-- window body -->
+  <rect x="4" y="8" width="56" height="48" rx="10" fill="#0B1220"></rect>
+  <!-- title bar -->
+  <rect x="4" y="8" width="56" height="10" rx="10" fill="#FFFFFF0F"></rect>
+  <rect x="4" y="13" width="56" height="5" fill="#FFFFFF0F"></rect>
+  <!-- traffic lights -->
+  <circle cx="14" cy="13" r="2.5" fill="#EF4444"></circle>
+  <circle cx="22" cy="13" r="2.5" fill="#F59E0B"></circle>
+  <circle cx="30" cy="13" r="2.5" fill="#10B981"></circle>
+  <!-- prompt: > _ -->
+  <path d="M16 36 L28 30 L16 24" stroke="#34D399" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+  <line x1="32" y1="36" x2="46" y2="36" stroke="#34D399" stroke-width="4" stroke-linecap="round"></line>
+  <!-- subtle border glow -->
+  <rect x="4.5" y="8.5" width="55" height="47" rx="9.5" stroke="#FFFFFF1A"></rect>
+</svg>
