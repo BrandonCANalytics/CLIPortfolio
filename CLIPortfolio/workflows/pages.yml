@@ -1,0 +1,68 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Detect the inner Vite project folder (where vite.config.js lives)
+      - name: Detect project directory
+        id: detect
+        shell: bash
+        run: |
+          set -e
+          # find vite.config.js closest to the repo root
+          DIR="$(dirname "$(find . -name vite.config.js | sort | head -n1)")"
+          if [ -z "$DIR" ]; then
+            echo "Could not find vite.config.js. Are you in the right repo?" >&2
+            exit 1
+          fi
+          # strip leading ./ for nicer paths
+          DIR="${DIR#./}"
+          echo "project_dir=$DIR" >> "$GITHUB_OUTPUT"
+          echo "Detected project_dir: $DIR"
+          echo "Repo tree (2 levels):"
+          find . -maxdepth 2 -print
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ steps.detect.outputs.project_dir }}/package-lock.json
+
+      - name: Install
+        run: npm ci || npm i
+        working-directory: ${{ steps.detect.outputs.project_dir }}
+
+      - name: Build
+        run: npm run build
+        working-directory: ${{ steps.detect.outputs.project_dir }}
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ steps.detect.outputs.project_dir }}/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
