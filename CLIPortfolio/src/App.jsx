@@ -55,6 +55,25 @@ const HELP_LINES = [
   "  clear             Clear the terminal",
 ];
 
+// Put near the top, below constants
+const normalizeDrivePdf = (url) => {
+  try {
+    const u = new URL(url);
+    // Match /file/d/<id>/view or /preview
+    const m = u.pathname.match(/\/file\/d\/([^/]+)/);
+    if (u.hostname.includes('drive.google.com') && m) {
+      const id = m[1];
+      return {
+        embed: `https://drive.google.com/file/d/${id}/preview`,
+        full:  `https://drive.google.com/file/d/${id}/view?usp=sharing`,
+      };
+    }
+  } catch {}
+  return { embed: url, full: url };
+};
+
+
+
 function useTypewriter() {
   const [buffer, setBuffer] = useState("");
   const [queue, setQueue] = useState([]); // strings to type out, in order
@@ -104,6 +123,7 @@ export default function App() {
   const inputRef = useRef(null);
   const { buffer, typeLines, clear: clearTypewriter, isTyping } = useTypewriter();
   const [showResume, setShowResume] = useState(false);
+  const hasBooted = useRef(false);
 
   // Focus the input when clicking anywhere in the terminal
   const containerRef = useRef(null);
@@ -115,35 +135,40 @@ export default function App() {
     return () => el.removeEventListener("mousedown", handle);
   }, []);
 
-  // On mount: boot animation + greet
-  useEffect(() => {
-    setLines([]);
-    clearTypewriter();
-    const BOOT_LINES = [
-      "[BOOT] Initializing environment…",
-      "[OK] Loading portfolio modules…",
-      "[OK] Mounting UI…",
-      "[OK] Ready.",
-      "",
-      "Welcome to Brandon’s Portfolio CLI.",
-      "Pro tip: type 'can -h' to see all commands.",
-    ];
-    typeLines(BOOT_LINES);
-  }, []);
+// On mount: boot animation + greet (only once)
+useEffect(() => {
+  if (hasBooted.current) return;
+  hasBooted.current = true;
 
-  // Append typewriter buffer as it grows
-  useEffect(() => {
-    if (!buffer) return;
-    setLines((prev) => {
-      const last = prev[prev.length - 1];
-      if (last && last.kind === "typed") {
-        const next = [...prev];
-        next[next.length - 1] = { kind: "typed", text: buffer };
-        return next;
-      }
-      return [...prev, { kind: "typed", text: buffer }];
-    });
-  }, [buffer]);
+  setLines([]);
+  clearTypewriter();
+  const BOOT_LINES = [
+    "[BOOT] Initializing environment…",
+    "[OK] Loading portfolio modules…",
+    "[OK] Mounting UI…",
+    "[OK] Ready.",
+    "",
+    "Welcome to Brandon’s Portfolio CLI.",
+    "Pro tip: type 'can -h' to see all commands.",
+  ];
+  typeLines(BOOT_LINES);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+
+// Append typewriter buffer as it grows
+useEffect(() => {
+  if (!buffer) return;
+  setLines((prev) => {
+    const last = prev[prev.length - 1];
+    if (last && last.kind === "typed") {
+      const next = [...prev];
+      next[next.length - 1] = { kind: "typed", text: buffer };
+      return next;
+    }
+    return [...prev, { kind: "typed", text: buffer }];
+  });
+}, [buffer]);
+
 
   const runCommand = (raw) => {
     const cmd = raw.trim();
@@ -193,16 +218,17 @@ export default function App() {
     }
 
     if (cmd === "can -resume") {
-      const out = ["Opening resume window…"];
-      if (RESUME_PDF_URL && RESUME_PDF_URL !== "#") {
-        out.push(`PDF version → ${RESUME_PDF_URL}`);
-        setShowResume(true);
-      } else {
-        out.push("(Set RESUME_PDF_URL to enable the PDF preview and link.)");
-      }
-      typeLines(out);
-      return;
-    }
+  const out = ["Opening resume window…"];
+  if (RESUME_PDF_URL && RESUME_PDF_URL !== "#") {
+    out.push(`PDF version → ${pdfURLs.full}`);
+    setShowResume(true);
+  } else {
+    out.push("(Set RESUME_PDF_URL to enable the PDF preview and link.)");
+  }
+  typeLines(out);
+  return;
+}
+
 
     // Unknown command
     typeLines([
@@ -222,6 +248,8 @@ export default function App() {
   const hint = useMemo(() => {
     return input.length === 0 ? "type 'can -h' to see all commands" : "";
   }, [input]);
+
+  const pdfURLs = normalizeDrivePdf(RESUME_PDF_URL);
 
   return (
     <div
@@ -284,19 +312,19 @@ export default function App() {
       {/* Resume Modal */}
       {showResume && (
         <ResumeModal
-          pdfUrl={RESUME_PDF_URL}
-          onClose={() => setShowResume(false)}
-        />
+  pdfUrl={pdfURLs.embed}
+  fullUrl={pdfURLs.full}
+  onClose={() => setShowResume(false)}
+/>
+
       )}
     </div>
   );
 }
 
-function ResumeModal({ pdfUrl, onClose }) {
+function ResumeModal({ pdfUrl, fullUrl, onClose }) {
   useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-    };
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
@@ -318,11 +346,7 @@ function ResumeModal({ pdfUrl, onClose }) {
             <span className="w-3 h-3 rounded-full bg-emerald-500/90" />
             <span className="ml-3">Resume.pdf</span>
           </div>
-          <button
-            onClick={onClose}
-            className="text-white/70 hover:text-white"
-            aria-label="Close resume"
-          >
+          <button onClick={onClose} className="text-white/70 hover:text-white" aria-label="Close resume">
             ✕
           </button>
         </div>
@@ -341,9 +365,9 @@ function ResumeModal({ pdfUrl, onClose }) {
             </div>
           </object>
 
-          {/* Click-through overlay → opens new tab with fullscreen PDF */}
+          {/* Click-through overlay → opens FULLSCREEN view */}
           <a
-            href={pdfUrl}
+            href={fullUrl}
             target="_blank"
             rel="noreferrer"
             className="absolute inset-0"
@@ -355,14 +379,15 @@ function ResumeModal({ pdfUrl, onClose }) {
   );
 }
 
+
 function Line({ kind, text }) {
-  const base = "whitespace-pre-wrap break-words";
+  const base = "whitespace-pre-wrap break-words break-all min-w-0 max-w-full leading-relaxed";
   if (kind === "in") {
-    return <div className={`${base} text-emerald-300`}>{text}</div>;
+    return <div className={`${base} text-emerald-300 pl-1`}>{text}</div>;
   }
   if (kind === "typed") {
-    return <pre className={`${base} text-green-100`}>{text}</pre>;
+    return <pre className={`${base} text-green-100 pl-1 m-0`}>{text}</pre>;
   }
-  // default output line
-  return <div className={`${base} text-green-100`}>{text}</div>;
+  return <div className={`${base} text-green-100 pl-1`}>{text}</div>;
 }
+
