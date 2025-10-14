@@ -34,7 +34,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: CLIPortfolio/CLIPortfolio/package-lock.json
+          cache-dependency-path: CLIPortfolio/package-lock.json
 
       - run: npm ci || npm i
       - run: npm run build
