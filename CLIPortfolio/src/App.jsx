@@ -12,14 +12,17 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 // ======= CONFIG: personalize these =======
 const RESUME_PDF_URL = "https://drive.google.com/file/d/1vRsuxjurObH3oeU80AiqVgrL37YvBjc9/view?usp=sharing"; // e.g. "/Brandon_Cantrell_Resume.pdf" or a public link
 const LINKEDIN_URL = "https://www.linkedin.com/in/canalytics/";
-const GITHUB_URL = "https://github.com/BrandonCANalytics";
-const PYGAME_URL = "https://canalytics.itch.io/corp-pygame"; // point to your Pygame profile or game page
-const EMAIL = "brandoncantrell2000@gmail.com"; // update me
-const CALENDLY_URL = "https://calendly.com/brandoncantrell2000/canalytics-intro-call"; // update me
+const GITHUB_URL = "https://github.com/BrandonCANalytics ";
+const PYGAME_URL = "https://canalytics.itch.io/corp-pygame "; // point to your Pygame profile or game page
+const EMAIL = "brandoncantrell2000@gmail.com "; // update me
+const CALENDLY_URL = "https://calendly.com/brandoncantrell2000/canalytics-intro-call "; // update me
 
 // Windows XP "Bliss" (archived 600dpi)
 const XP_WALLPAPER_URL =
-  "https://ia801007.us.archive.org/13/items/theoriginalfilesofsomewindowswallpapers/bliss%20600dpi.jpg";
+  "https://media.idownloadblog.com/wp-content/uploads/2017/07/OS-X-Leopard-10.5-wallpaper.jpg";
+
+//flags to ensure BOOT animation runs only once
+let BOOT_ALREADY_RAN = false;               // survives component remounts
 
 // Showcase projects
 const PROJECTS = [
@@ -27,32 +30,44 @@ const PROJECTS = [
     name: "Math Launch Dallas",
     blurb: "Tutoring microsite with simple analytics pipeline and lead capture.",
     link: "https://mathlaunchdallas.webflow.io/",
-    tags: ["Webflow", "Analytics", "Lead gen"],
+    tags: ["Webflow", "Analytics", "Lead gen "],
   },
   {
     name: "Crime & Orders Dashboards",
     blurb: "Governed metrics + thin marts feeding embedded dashboards.",
-    link: "",
-    tags: ["Looker", "SQL", "Data Modeling"],
+    link: "work product (Sorry!) ",
+    tags: ["Looker", "SQL", "Data Modeling "],
   },
   {
     name: "1 Hard Thing a Day API",
     blurb: "FastAPI + Postgres side project with simple JWT auth.",
     link: "https://one-hard-thing.fly.dev/",
-    tags: ["FastAPI", "Postgres", "Auth"],
+    tags: ["FastAPI", "Postgres", "Auth "],
+  },
+  {
+    name: "CANalytics Portfolio",
+    blurb: "Interactive web analytics portfolio built with React and Tailwind.",
+    link: "https://brandoncanalytics.github.io/CANalytics/",
+    tags: ["React", "Tailwind", "Portfolio"],
+  },
+  {
+    name: "Corp-Pygame",
+    blurb: "Retro arcade-style game exploring corporate chaos, built in Python.",
+    link: "https://canalytics.itch.io/corp-pygame",
+    tags: ["Python", "Pygame", "Game Dev"],
   },
 ];
 
 // ======= Terminal UI helpers =======
 const PROMPT = "brandon@cantrell:~$";
 const HELP_LINES = [
-  "Available commands:",
-  "  can -h            Show help",
-  "  can -resume       Open resume window (click to view fullscreen)",
-  "  can -links        Show LinkedIn, GitHub, Pygame links",
-  "  can -projects     Show featured projects",
-  "  can -contact      Show email and scheduling",
-  "  clear             Clear the terminal",
+  " Available commands:",
+  "  can -h            Show help ",
+  "  can -resume       Open resume window (click to view fullscreen) ",
+  "  can -links        Show LinkedIn, GitHub, Pygame links ",
+  "  can -projects     Show featured projects ",
+  "  can -contact      Show email and scheduling ",
+  "  clear             Clear the terminal "
 ];
 
 // Put near the top, below constants
@@ -105,8 +120,15 @@ function useTypewriter() {
   }, [active, queue]);
 
   const typeLines = (lines) => {
-    setQueue((prev) => [...prev, ...lines.map((l) => l + "")]);
-  };
+  setQueue((prev) => [
+    ...prev,
+    ...lines
+      .flat()
+      .filter((l) => l !== null && l !== undefined)
+      .map((l) => (typeof l === "string" ? l : String(l))),
+  ]);
+};
+
 
   const clear = () => {
     setBuffer("");
@@ -124,6 +146,8 @@ export default function App() {
   const { buffer, typeLines, clear: clearTypewriter, isTyping } = useTypewriter();
   const [showResume, setShowResume] = useState(false);
   const hasBooted = useRef(false);
+  const scrollRef = useRef(null);
+
 
   // Focus the input when clicking anywhere in the terminal
   const containerRef = useRef(null);
@@ -137,23 +161,26 @@ export default function App() {
 
 // On mount: boot animation + greet (only once)
 useEffect(() => {
-  if (hasBooted.current) return;
-  hasBooted.current = true;
-
-  setLines([]);
-  clearTypewriter();
+  if (BOOT_ALREADY_RAN) return;
+  BOOT_ALREADY_RAN = true;
+  
   const BOOT_LINES = [
-    "[BOOT] Initializing environment…",
-    "[OK] Loading portfolio modules…",
-    "[OK] Mounting UI…",
-    "[OK] Ready.",
+    " [BOOT] Initializing environment…",
+    " [OK] Loading portfolio modules…",
+    " [OK] Mounting UI…",
+    " [OK] Ready.",
     "",
-    "Welcome to Brandon’s Portfolio CLI.",
-    "Pro tip: type 'can -h' to see all commands.",
+    " Welcome to Brandon’s Portfolio CLI.",
+    " Pro tip: type 'can -h' to see all commands.",
   ];
   typeLines(BOOT_LINES);
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
+
+useEffect(() => {
+  // smooth scroll to bottom whenever lines update
+  scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+}, [lines]);
 
 // Append typewriter buffer as it grows
 useEffect(() => {
@@ -170,72 +197,107 @@ useEffect(() => {
 }, [buffer]);
 
 
+// Freeze any active 'typed' block and clear the typewriter buffer/queue
+const finalizeTypedBlock = () => {
+  setLines((prev) => {
+    const last = prev[prev.length - 1];
+    if (last && last.kind === "typed") {
+      const next = [...prev];
+      next[next.length - 1] = { kind: "out", text: last.text };
+      return next;
+    }
+    return prev;
+  });
+  clearTypewriter();
+};
+
+// Strictly sanitize lines before typing so "undefined" can never appear
+const safeTypeLines = (arr, label = "batch") => {
+  const cleaned = arr
+    .flat()                               // if anything nested sneaks in
+    .filter((l) => l !== null && l !== undefined)
+    .map((l) => (typeof l === "string" ? l : String(l)));
+
+  // DEBUG: see exactly what's being typed
+  // Remove this after you confirm it's clean:
+  console.log("typeLines:", label, cleaned);
+
+  typeLines(cleaned);
+};
+
+
+  const pdfURLs = normalizeDrivePdf(RESUME_PDF_URL);
+
   const runCommand = (raw) => {
-    const cmd = raw.trim();
+  const cmd = raw.trim();
 
-    // Show what the user typed
-    setLines((prev) => [...prev, { kind: "in", text: `${PROMPT} ${cmd}` }]);
+  // Echo the command
+  setLines((prev) => [...prev, { kind: "in", text: `${PROMPT} ${cmd}` }]);
 
-    if (cmd === "") return;
+  if (cmd === "") return;
 
-    if (cmd === "clear") {
-      setLines([]);
-      clearTypewriter();
-      setShowResume(false);
-      return;
-    }
-
-    if (cmd === "can -h" || cmd === "help" || cmd === "?") {
-      typeLines(HELP_LINES);
-      return;
-    }
-
-    if (cmd === "can -links") {
-      const linkLines = [
-        `LinkedIn  → ${LINKEDIN_URL}`,
-        `GitHub    → ${GITHUB_URL}`,
-        `Pygame    → ${PYGAME_URL}`,
-      ];
-      typeLines(linkLines);
-      return;
-    }
-
-    if (cmd === "can -projects") {
-      const out = ["Projects:"];
-      PROJECTS.forEach((p, i) => {
-        out.push(`  ${i + 1}. ${p.name} — ${p.blurb}`);
-        out.push(`     Tags: ${p.tags.join(", ")}`);
-        out.push(`     Link: ${p.link}`);
-      });
-      typeLines(out);
-      return;
-    }
-
-    if (cmd === "can -contact") {
-      const out = [`Email     → ${EMAIL}`, `Schedule  → ${CALENDLY_URL}`];
-      typeLines(out);
-      return;
-    }
-
-    if (cmd === "can -resume") {
-  const out = ["Opening resume window…"];
-  if (RESUME_PDF_URL && RESUME_PDF_URL !== "#") {
-    out.push(`PDF version → ${pdfURLs.full}`);
-    setShowResume(true);
-  } else {
-    out.push("(Set RESUME_PDF_URL to enable the PDF preview and link.)");
+  if (cmd === "clear") {
+    finalizeTypedBlock();
+    setLines([]);
+    clearTypewriter();
+    setShowResume(false);
+    return;
   }
-  typeLines(out);
-  return;
-}
 
+  if (cmd === "can -h" || cmd === "help" || cmd === "?") {
+    finalizeTypedBlock();
+    safeTypeLines(HELP_LINES);
+    return;
+  }
 
-    // Unknown command
-    typeLines([
-      `Unknown command: ${cmd}`,
-      "Type 'can -h' to see available commands.",
-    ]);
-  };
+  if (cmd === "can -links") {
+    finalizeTypedBlock();
+    const linkLines = [
+      ` LinkedIn  → ${LINKEDIN_URL}`,
+      ` GitHub    → ${GITHUB_URL}`,
+      ` Pygame    → ${PYGAME_URL}`,
+    ];
+    safeTypeLines(linkLines);
+    return;
+  }
+
+  if (cmd === "can -projects") {
+    finalizeTypedBlock();
+    const out = [" Projects:"];
+    PROJECTS.forEach((p, i) => {
+      out.push(`  ${i + 1}. ${p.name} — ${p.blurb}`);
+      out.push(`     Tags: ${p.tags.join(", ")}`);
+      if (p.link) out.push(`     Link: ${p.link}`); // <-- skip blank link
+    });
+    safeTypeLines(out);
+    return;
+  }
+
+  if (cmd === "can -contact") {
+    finalizeTypedBlock();
+    const out = [` Email     → ${EMAIL}`, ` Schedule  → ${CALENDLY_URL}`];
+    safeTypeLines(out);
+    return;
+  }
+
+  if (cmd === "can -resume") {
+    finalizeTypedBlock();
+    const out = ["Opening resume window…"];
+    if (RESUME_PDF_URL && RESUME_PDF_URL !== "#") {
+      out.push(`PDF version → ${pdfURLs.full}`);
+      setShowResume(true);
+    } else {
+      out.push("(Set RESUME_PDF_URL to enable the PDF preview and link.)");
+    }
+    safeTypeLines(out);
+    return;
+  }
+
+  // Unknown command
+  finalizeTypedBlock();
+  safeTypeLines([` Unknown command: ${cmd}`, " Type 'can -h' to see available commands."]);
+};
+
 
   const onSubmit = (e) => {
     e.preventDefault();
@@ -249,7 +311,6 @@ useEffect(() => {
     return input.length === 0 ? "type 'can -h' to see all commands" : "";
   }, [input]);
 
-  const pdfURLs = normalizeDrivePdf(RESUME_PDF_URL);
 
   return (
     <div
@@ -305,6 +366,7 @@ useEffect(() => {
                 )}
               </div>
             </form>
+            <div ref={scrollRef} />
           </div>
         </div>
       </div>
@@ -335,7 +397,7 @@ function ResumeModal({ pdfUrl, fullUrl, onClose }) {
       onClick={onClose}
     >
       <div
-        className="w-[95vw] md:w-[80vw] h-[80vh] max-w-5xl rounded-2xl overflow-hidden border border-white/15 bg-black/85 shadow-2xl"
+        className="w-[95vw] md:w-[80vw] h-[85vh] max-w-5xl rounded-2xl overflow-hidden border border-white/15 bg-black/85 shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Title bar */}
@@ -346,33 +408,49 @@ function ResumeModal({ pdfUrl, fullUrl, onClose }) {
             <span className="w-3 h-3 rounded-full bg-emerald-500/90" />
             <span className="ml-3">Resume.pdf</span>
           </div>
-          <button onClick={onClose} className="text-white/70 hover:text-white" aria-label="Close resume">
-            ✕
-          </button>
+
+          <div className="flex items-center gap-3">
+            <a
+              href={fullUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-emerald-300 hover:text-emerald-200 underline decoration-emerald-400/60"
+              aria-label="Open resume fullscreen"
+            >
+              Open Fullscreen ↗
+            </a>
+            <button
+              onClick={onClose}
+              className="text-black/70 hover:text-red-400"
+              aria-label="Close resume"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
-        {/* PDF preview area. Any click opens fullscreen PDF in new tab. */}
-        <div className="relative w-full h-[calc(80vh-44px)]">
-          {/* Visual preview (non-interactive so overlay click works everywhere) */}
+        {/* Scrollable PDF area */}
+        <div className="flex-1 overflow-auto">
+          {/* Use iframe for better cross-browser scrolling, esp. with Google Drive /preview */}
+          <iframe
+            src={pdfUrl}
+            title="Resume PDF preview"
+            className="w-full h-full"
+          />
+
+          {/* If you prefer <object>, it also works; keep pointer events enabled: */}
+          {/* 
           <object
             data={pdfUrl}
             type="application/pdf"
-            className="w-full h-full pointer-events-none"
+            className="w-full h-full"
             aria-label="Resume PDF preview"
           >
             <div className="w-full h-full flex items-center justify-center text-white/70 p-6 text-center">
-              PDF preview not supported here. Click to open fullscreen.
+              PDF preview not supported here. Use “Open Fullscreen”.
             </div>
           </object>
-
-          {/* Click-through overlay → opens FULLSCREEN view */}
-          <a
-            href={fullUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="absolute inset-0"
-            aria-label="Open resume fullscreen"
-          />
+          */}
         </div>
       </div>
     </div>
@@ -380,14 +458,68 @@ function ResumeModal({ pdfUrl, fullUrl, onClose }) {
 }
 
 
+
 function Line({ kind, text }) {
-  const base = "whitespace-pre-wrap break-words break-all min-w-0 max-w-full leading-relaxed";
-  if (kind === "in") {
-    return <div className={`${base} text-emerald-300 pl-1`}>{text}</div>;
-  }
-  if (kind === "typed") {
-    return <pre className={`${base} text-green-100 pl-1 m-0`}>{text}</pre>;
-  }
-  return <div className={`${base} text-green-100 pl-1`}>{text}</div>;
+  const base = "min-w-0 max-w-full leading-relaxed break-words font-mono";
+  const color = kind === "in" ? "text-emerald-300" : "text-green-100";
+
+  const safe = String(text ?? "").replace(/\bundefined\b/g, "");
+  const parts = safe.replace(/\r\n/g, "\n").split("\n");
+
+  // Turn URLs/emails into <a>…</a> (target=_blank)
+  const linkify = (s) => {
+    const re =
+      /(https?:\/\/[^\s)]+)|([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g;
+    const out = [];
+    let last = 0, m;
+
+    while ((m = re.exec(s)) !== null) {
+      if (m.index > last) out.push(s.slice(last, m.index));
+      const [hit, url, email] = m;
+      if (url) {
+        out.push(
+          <a
+            key={out.length}
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="underline decoration-emerald-400/60 hover:decoration-emerald-400"
+          >
+            {url}
+          </a>
+        );
+      } else if (email) {
+        out.push(
+          <a
+            key={out.length}
+            href={`mailto:${email}`}
+            className="underline decoration-emerald-400/60 hover:decoration-emerald-400"
+          >
+            {email}
+          </a>
+        );
+      }
+      last = re.lastIndex;
+    }
+    if (last < s.length) out.push(s.slice(last));
+    return out.length ? out : [s];
+  };
+
+  return (
+    <div className={`${base} ${color}`}>
+      {parts.map((ln, i) => (
+        <div
+          key={i}
+          className="pl-1"
+          style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+        >
+          {"\u200B"}
+          {ln.length ? linkify(ln) : "\u00A0"}
+        </div>
+      ))}
+    </div>
+  );
 }
+
+
 
