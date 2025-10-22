@@ -256,6 +256,9 @@ const safeTypeLines = (arr, label = "batch") => {
       ` LinkedIn  → ${LINKEDIN_URL}`,
       ` GitHub    → ${GITHUB_URL}`,
       ` Pygame    → ${PYGAME_URL}`,
+      ` One Hard Thing a Day API → https://one-hard-thing.fly.dev/ `,
+      ` CANalytics (Legacy) Portfolio → https://brandoncanalytics.github.io/CANalytics/ `,
+
     ];
     safeTypeLines(linkLines);
     return;
@@ -282,9 +285,9 @@ const safeTypeLines = (arr, label = "batch") => {
 
   if (cmd === "can -resume") {
     finalizeTypedBlock();
-    const out = ["Opening resume window…"];
+    const out = [" Opening resume window…"];
     if (RESUME_PDF_URL && RESUME_PDF_URL !== "#") {
-      out.push(`PDF version → ${pdfURLs.full}`);
+      out.push(` PDF version → ${pdfURLs.full}`);
       setShowResume(true);
     } else {
       out.push("(Set RESUME_PDF_URL to enable the PDF preview and link.)");
